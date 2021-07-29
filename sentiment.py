@@ -114,12 +114,13 @@ print(train_acc, valid_acc, test_acc)
 
 # ============== 通过解析解求解 ==============
 
-p_1 = (train_y).mean()
-p_0 = 1 - p_1
-mu_0 = train_x[train_y[:, 0] == 0].mean(axis=0)
-mu_1 = train_x[train_y[:, 0] == 1].mean(axis=0)
-w = mu_1 - mu_0
-b = (mu_0.dot(mu_0) - mu_1.dot(mu_1)) / 2 + np.log(p_1 / p_0)
+ps = np.array([(train_y == i).mean() for i in range(2)])
+mus = [train_x[train_y[:, 0] == i].mean(axis=0) for i in range(2)]
+cov = np.eye(len(mus[0])) - np.einsum('nd,nc,n->dc', mus, mus, ps)
+cov_inv = np.linalg.inv(cov)
+w = np.einsum('nd,dc->cn', mus, cov_inv)
+b = np.log(ps) - np.einsum('nd,dc,nc->n', mus, cov_inv, mus) / 2
+w, b = w[:, 1] - w[:, 0], b[1] - b[0]
 
 train_y_pred = train_x.dot(w) + b
 valid_y_pred = valid_x.dot(w) + b
