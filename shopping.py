@@ -118,11 +118,11 @@ print(train_acc, valid_acc)
 # ============== 通过解析解求解 ==============
 
 ps = np.array([(train_y == i).mean() for i in range(num_classes)])
-mus = np.array([
-    train_x[train_y[:, 0] == i].mean(axis=0) for i in range(num_classes)
-])
-w = mus.T
-b = np.log(ps) - (mus**2).sum(1) / 2
+mus = [train_x[train_y[:, 0] == i].mean(axis=0) for i in range(num_classes)]
+cov = np.eye(len(mus[0])) - np.einsum('nd,nc,n->dc', mus, mus, ps)
+cov_inv = np.linalg.inv(cov)
+w = np.einsum('nd,dc->cn', mus, cov_inv)
+b = np.log(ps) - np.einsum('nd,dc,nc->n', mus, cov_inv, mus) / 2
 
 train_y_pred = train_x.dot(w) + b
 valid_y_pred = valid_x.dot(w) + b
